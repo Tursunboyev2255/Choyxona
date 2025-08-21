@@ -1,0 +1,4 @@
+aiohttps==2.9.5
+pip==25.2
+setuptools\
+wheel
