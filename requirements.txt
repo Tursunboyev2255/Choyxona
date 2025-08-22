@@ -1,4 +1,5 @@
-aiogram==2.25.1
-aiohttps==3.9.0
-aiodns
-Brotli
+python-telegram-bot==20.7
+flask==2.3.3
+requests==2.31.0
+python-dotenv==1.0.0
+gunicorn==21.2.0
