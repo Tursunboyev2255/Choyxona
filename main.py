@@ -47,9 +47,9 @@ async def start(message: types.Message):
     elif message.from_user.id in admins:
         await message.answer("📊 Salom, Admin!\n/statistika — umumiy hisobot")
     elif message.from_user.id in ofitsants:
-        await message.answer("🧑‍🍳 Salom, Ofitsant!\n/stol_och — yangi stol ochish\n/zakaz — buyurtma qo‘shish\n/stol_yop — stolni yopish")
+        await message.answer("🧑‍🍳 Salom, Ofitsant!\n/stol_och — yangi stol ochish\n/zakaz — buyurtma qo'shish\n/stol_yop — stolni yopish")
     else:
-        await message.answer("❌ Sizni SuperAdmin hali qo‘shmagan.")
+        await message.answer("❌ Sizni SuperAdmin hali qo'shmagan.")
 
 # --- SuperAdmin komandalar ---
 @dp.message_handler(commands=['admin_add'])
@@ -59,9 +59,9 @@ async def add_admin(message: types.Message):
     try:
         user_id = int(message.get_args())
         admins.add(user_id)
-        await message.answer(f"✅ {user_id} Admin qo‘shildi")
+        await message.answer(f"✅ {user_id} Admin qo'shildi")
     except:
-        await message.answer("❌ To‘g‘ri ID kiriting")
+        await message.answer("❌ To'g'ri ID kiriting")
 
 @dp.message_handler(commands=['ofitsant_add'])
 async def add_ofitsant(message: types.Message):
@@ -70,9 +70,9 @@ async def add_ofitsant(message: types.Message):
     try:
         user_id = int(message.get_args())
         ofitsants.add(user_id)
-        await message.answer(f"✅ {user_id} Ofitsant qo‘shildi")
+        await message.answer(f"✅ {user_id} Ofitsant qo'shildi")
     except:
-        await message.answer("❌ To‘g‘ri ID kiriting")
+        await message.answer("❌ To'g'ri ID kiriting")
 
 # --- Ofitsant: Stol ochish ---
 @dp.message_handler(commands=['stol_och'])
@@ -88,7 +88,7 @@ async def stol_number(message: types.Message, state: FSMContext):
     if stol in stollar:
         return await message.answer("❌ Bu stol allaqachon ochilgan.")
     await state.update_data(stol=stol)
-    await message.answer(f"➡️ Stol {stol} uchun boshlang‘ich narxni kiriting:")
+    await message.answer(f"➡️ Stol {stol} uchun boshlang'ich narxni kiriting:")
     await StolStates.waiting_for_stol_price.set()
 
 @dp.message_handler(state=StolStates.waiting_for_stol_price)
@@ -100,18 +100,18 @@ async def stol_price(message: types.Message, state: FSMContext):
     data = await state.get_data()
     stol = data['stol']
     stollar[stol] = {"summa": price, "buyurtmalar": [], "ofitsant": message.from_user.id}
-    await message.answer(f"✅ {stol}-stol ochildi.\nBuyurtma qo‘shish uchun /zakaz")
+    await message.answer(f"✅ {stol}-stol ochildi.\nBuyurtma qo'shish uchun /zakaz")
     await state.finish()
 
-# --- Ofitsant: Zakaz qo‘shish ---
+# --- Ofitsant: Zakaz qo'shish ---
 @dp.message_handler(commands=['zakaz'])
 async def zakaz_start(message: types.Message):
-if message.from_user.id not in ofitsants and message.from_user.id != SUPER_ADMIN_ID:
+   if message.from_user.id not in ofitsants and message.from_user.id != SUPER_ADMIN_ID:
         return
     if not stollar:
         return await message.answer("❌ Hali stol ochilmagan.")
     ochiq_stollar = ", ".join(stollar.keys())
-    await message.answer(f"🍽 Qaysi stolga buyurtma qo‘shasiz?\nOchiq stollar: {ochiq_stollar}")
+    await message.answer(f"🍽 Qaysi stolga buyurtma qo'shasiz?\nOchiq stollar: {ochiq_stollar}")
     await StolStates.waiting_for_meal_stol.set()
 
 @dp.message_handler(state=StolStates.waiting_for_meal_stol)
@@ -141,7 +141,7 @@ async def zakaz_meal_price(message: types.Message, state: FSMContext):
     stollar[stol]['buyurtmalar'].append((meal, price))
     stollar[stol]['summa'] += price
     statistika["orders"].append((date.today(), message.from_user.id, stol, meal, price))
-    await message.answer(f"✅ {meal} ({price} so‘m) {stol}-stolga qo‘shildi.\n/stol_yop — stolni yopish")
+    await message.answer(f"✅ {meal} ({price} so'm) {stol}-stolga qo'shildi.\n/stol_yop — stolni yopish")
     await state.finish()
 
 # --- Ofitsant: Stol yopish ---
@@ -162,7 +162,7 @@ async def stol_yop(message: types.Message, state: FSMContext):
         return await message.answer("❌ Bunday stol topilmadi.")
     summa = stollar[stol]['summa']
     ofitsant_id = stollar[stol]['ofitsant']
-    await message.answer(f"🧾 {stol}-stol yopildi.\nYakuniy summa: {summa} so‘m")
+    await message.answer(f"🧾 {stol}-stol yopildi.\nYakuniy summa: {summa} so'm")
     statistika["totals"].append((date.today(), stol, summa, ofitsant_id))
     del stollar[stol]
     await state.finish()
@@ -187,10 +187,10 @@ async def statistikani_korish(message: types.Message):
     top_ofitsantlar = ofitsantlar.most_common(3)
 
     msg = f"📊 Bugungi Statistika ({bugun}):\n"
-    msg += f"💰 Jami tushum: {jami_summa} so‘m\n"
+    msg += f"💰 Jami tushum: {jami_summa} so'm\n"
     msg += f"🍽 Ochildi: {jami_stol} ta stol\n\n"
 
-    msg += "🥇 Eng ko‘p sotilganlar:\n"
+    msg += "🥇 Eng ko'p sotilganlar:\n"
     for meal, soni in top_meals:
         msg += f"- {meal}: {soni} marta\n"
 
