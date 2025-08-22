@@ -3,7 +3,7 @@ from aiogram import Bot, Dispatcher, executor, types
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
-from datetime import datetime, date
+from datetime import date
 from collections import Counter
 
 # 🔑 Config
@@ -24,7 +24,7 @@ ofitsants = set()
 # 🍽 Stollar
 stollar = {}
 
-# 📊 Statistikaga saqlanadigan ma’lumotlar
+# 📊 Statistika
 statistika = {
     "orders": [],   # (sana, ofitsant_id, stol, mahsulot, narx)
     "totals": []    # (sana, stol, summa, ofitsant_id)
@@ -34,8 +34,10 @@ statistika = {
 class StolStates(StatesGroup):
     waiting_for_stol_number = State()
     waiting_for_stol_price = State()
+    waiting_for_meal_stol = State()
     waiting_for_meal_name = State()
     waiting_for_meal_price = State()
+    waiting_for_close_stol = State()
 
 # --- START ---
 @dp.message_handler(commands=['start'])
@@ -45,7 +47,7 @@ async def start(message: types.Message):
     elif message.from_user.id in admins:
         await message.answer("📊 Salom, Admin!\n/statistika — umumiy hisobot")
     elif message.from_user.id in ofitsants:
-        await message.answer("🧑‍🍳 Salom, Ofitsant!\n/stol_och — yangi stol ochish")
+        await message.answer("🧑‍🍳 Salom, Ofitsant!\n/stol_och — yangi stol ochish\n/zakaz — buyurtma qo‘shish\n/stol_yop — stolni yopish")
     else:
         await message.answer("❌ Sizni SuperAdmin hali qo‘shmagan.")
 
@@ -83,6 +85,8 @@ async def stol_och(message: types.Message):
 @dp.message_handler(state=StolStates.waiting_for_stol_number)
 async def stol_number(message: types.Message, state: FSMContext):
     stol = message.text
+    if stol in stollar:
+        return await message.answer("❌ Bu stol allaqachon ochilgan.")
     await state.update_data(stol=stol)
     await message.answer(f"➡️ Stol {stol} uchun boshlang‘ich narxni kiriting:")
     await StolStates.waiting_for_stol_price.set()
@@ -98,15 +102,27 @@ async def stol_price(message: types.Message, state: FSMContext):
     stollar[stol] = {"summa": price, "buyurtmalar": [], "ofitsant": message.from_user.id}
     await message.answer(f"✅ {stol}-stol ochildi.\nBuyurtma qo‘shish uchun /zakaz")
     await state.finish()
+
 # --- Ofitsant: Zakaz qo‘shish ---
 @dp.message_handler(commands=['zakaz'])
 async def zakaz_start(message: types.Message):
-    if message.from_user.id not in ofitsants and message.from_user.id != SUPER_ADMIN_ID:
+if message.from_user.id not in ofitsants and message.from_user.id != SUPER_ADMIN_ID:
         return
     if not stollar:
         return await message.answer("❌ Hali stol ochilmagan.")
+    ochiq_stollar = ", ".join(stollar.keys())
+    await message.answer(f"🍽 Qaysi stolga buyurtma qo‘shasiz?\nOchiq stollar: {ochiq_stollar}")
+    await StolStates.waiting_for_meal_stol.set()
+
+@dp.message_handler(state=StolStates.waiting_for_meal_stol)
+async def zakaz_choose_stol(message: types.Message, state: FSMContext):
+    stol = message.text
+    if stol not in stollar:
+        return await message.answer("❌ Bunday stol topilmadi.")
+    await state.update_data(stol=stol)
     await message.answer("🍽 Ovqat nomini kiriting:")
     await StolStates.waiting_for_meal_name.set()
+
 @dp.message_handler(state=StolStates.waiting_for_meal_name)
 async def zakaz_meal(message: types.Message, state: FSMContext):
     await state.update_data(meal=message.text)
@@ -121,27 +137,35 @@ async def zakaz_meal_price(message: types.Message, state: FSMContext):
         return await message.answer("❌ Faqat son kiriting.")
     data = await state.get_data()
     meal = data['meal']
-    stol = list(stollar.keys())[-1]
+    stol = data['stol']
     stollar[stol]['buyurtmalar'].append((meal, price))
     stollar[stol]['summa'] += price
-    # statistikaga yozib qo'yish
     statistika["orders"].append((date.today(), message.from_user.id, stol, meal, price))
-    await message.answer(f"✅ {meal} ({price} so‘m) qo‘shildi.\n/stol_yop — stolni yopish")
+    await message.answer(f"✅ {meal} ({price} so‘m) {stol}-stolga qo‘shildi.\n/stol_yop — stolni yopish")
     await state.finish()
 
 # --- Ofitsant: Stol yopish ---
 @dp.message_handler(commands=['stol_yop'])
-async def stol_yop(message: types.Message):
+async def stol_yop_start(message: types.Message):
     if message.from_user.id not in ofitsants and message.from_user.id != SUPER_ADMIN_ID:
         return
     if not stollar:
         return await message.answer("❌ Hali stol ochilmagan.")
-    stol = list(stollar.keys())[-1]
+    ochiq_stollar = ", ".join(stollar.keys())
+    await message.answer(f"🧾 Qaysi stolni yopasiz?\nOchiq stollar: {ochiq_stollar}")
+    await StolStates.waiting_for_close_stol.set()
+
+@dp.message_handler(state=StolStates.waiting_for_close_stol)
+async def stol_yop(message: types.Message, state: FSMContext):
+    stol = message.text
+    if stol not in stollar:
+        return await message.answer("❌ Bunday stol topilmadi.")
     summa = stollar[stol]['summa']
     ofitsant_id = stollar[stol]['ofitsant']
     await message.answer(f"🧾 {stol}-stol yopildi.\nYakuniy summa: {summa} so‘m")
     statistika["totals"].append((date.today(), stol, summa, ofitsant_id))
     del stollar[stol]
+    await state.finish()
 
 # --- Statistika ---
 @dp.message_handler(commands=['statistika'])
@@ -177,5 +201,5 @@ async def statistikani_korish(message: types.Message):
     await message.answer(msg)
 
 # --- Run ---
-if name == 'main':
+if name == "main":
     executor.start_polling(dp, skip_updates=True)
