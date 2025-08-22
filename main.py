@@ -7,8 +7,8 @@ from datetime import date
 from collections import Counter
 
 # 🔑 Config
-API_TOKEN = "8265201585:AAGhmbqqlJRN6wAB7M472rWAQ4CFPjPPVL8"
-SUPER_ADMIN_ID = 6969913541   # bu yerga SuperAdmin ID yozasiz
+API_TOKEN = "8265201585:AAGhmbqqlJRN6wAB7M472rWAQ4CFPjPPVL8"  # ✅ Token bor
+SUPER_ADMIN_ID = 6969913541   # ✅ SuperAdmin ID bor
 
 logging.basicConfig(level=logging.INFO)
 
@@ -106,7 +106,7 @@ async def stol_price(message: types.Message, state: FSMContext):
 # --- Ofitsant: Zakaz qo'shish ---
 @dp.message_handler(commands=['zakaz'])
 async def zakaz_start(message: types.Message):
-   if message.from_user.id not in ofitsants and message.from_user.id != SUPER_ADMIN_ID:
+    if message.from_user.id not in ofitsants and message.from_user.id != SUPER_ADMIN_ID:
         return
     if not stollar:
         return await message.answer("❌ Hali stol ochilmagan.")
